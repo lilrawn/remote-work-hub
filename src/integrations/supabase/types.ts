@@ -14,7 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          max_price: number
+          min_price: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          max_price?: number
+          min_price?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          max_price?: number
+          min_price?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      job_accounts: {
+        Row: {
+          category_id: string | null
+          company: string | null
+          created_at: string
+          description: string
+          id: string
+          image_url: string | null
+          is_available: boolean
+          monthly_earnings: string | null
+          price: number
+          skills_required: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category_id?: string | null
+          company?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          monthly_earnings?: string | null
+          price: number
+          skills_required?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category_id?: string | null
+          company?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          is_available?: boolean
+          monthly_earnings?: string | null
+          price?: number
+          skills_required?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_accounts_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string
+          id: string
+          job_account_id: string | null
+          mpesa_checkout_request_id: string | null
+          mpesa_receipt_number: string | null
+          payment_status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone: string
+          id?: string
+          job_account_id?: string | null
+          mpesa_checkout_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          payment_status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          job_account_id?: string | null
+          mpesa_checkout_request_id?: string | null
+          mpesa_receipt_number?: string | null
+          payment_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_job_account_id_fkey"
+            columns: ["job_account_id"]
+            isOneToOne: false
+            referencedRelation: "job_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
