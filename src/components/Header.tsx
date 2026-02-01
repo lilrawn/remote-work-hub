@@ -1,19 +1,39 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Briefcase, Menu, X } from 'lucide-react';
+import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useCart } from '@/hooks/useCart';
-import { useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
 
 export function Header() {
-  const itemCount = useCart((state) => state.getItemCount());
   const [isOpen, setIsOpen] = useState(false);
+  const itemCount = useCart((state) => state.getItemCount());
+  const { user, profile, isAdmin, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error('Failed to sign out');
+    } else {
+      toast.success('Signed out successfully');
+    }
+  };
 
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/jobs', label: 'Browse Jobs' },
     { href: '/categories', label: 'Categories' },
+    { href: '/orders', label: 'Order History' },
   ];
 
   return (
@@ -40,10 +60,20 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1"
+            >
+              <Shield className="h-4 w-4" />
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Actions */}
         <div className="flex items-center gap-4">
+          {/* Cart Button */}
           <Link to="/cart">
             <Button variant="outline" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
@@ -56,6 +86,50 @@ export function Header() {
               )}
             </Button>
           </Link>
+
+          {/* User Menu or Auth Button */}
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5">
+                  <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/orders" className="flex items-center cursor-pointer">
+                    <Package className="mr-2 h-4 w-4" />
+                    My Orders
+                  </Link>
+                </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin" className="flex items-center cursor-pointer">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link to="/auth">
+              <Button variant="outline" size="sm">
+                <User className="h-4 w-4 mr-2" />
+                Sign In
+              </Button>
+            </Link>
+          )}
 
           {/* Mobile Menu */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -76,6 +150,38 @@ export function Header() {
                     {link.label}
                   </Link>
                 ))}
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsOpen(false)}
+                    className="text-lg font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-2"
+                  >
+                    <Shield className="h-5 w-5" />
+                    Admin Dashboard
+                  </Link>
+                )}
+                {!user && (
+                  <Link
+                    to="/auth"
+                    onClick={() => setIsOpen(false)}
+                    className="text-lg font-medium hover:text-primary transition-colors flex items-center gap-2"
+                  >
+                    <User className="h-5 w-5" />
+                    Sign In
+                  </Link>
+                )}
+                {user && (
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsOpen(false);
+                    }}
+                    className="text-lg font-medium text-destructive hover:text-destructive/80 transition-colors flex items-center gap-2 text-left"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    Sign Out
+                  </button>
+                )}
               </nav>
             </SheetContent>
           </Sheet>

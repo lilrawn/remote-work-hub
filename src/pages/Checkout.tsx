@@ -1,23 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/hooks/useCart';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { checkoutSchema, CheckoutFormData, formatPhoneForMpesa } from '@/lib/validations';
 import { toast } from 'sonner';
 import { Loader2, Phone, User, Mail, CreditCard, ShieldCheck } from 'lucide-react';
 
 const Checkout = () => {
   const navigate = useNavigate();
   const { items, getTotalPrice, clearCart } = useCart();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+
+  const form = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+    },
   });
 
   const formatPrice = (price: number) => {
@@ -28,51 +37,29 @@ const Checkout = () => {
     }).format(price);
   };
 
-  const formatPhoneNumber = (phone: string): string => {
-    // Remove any non-digit characters
-    let cleaned = phone.replace(/\D/g, '');
-    
-    // Handle different formats
-    if (cleaned.startsWith('0')) {
-      cleaned = '254' + cleaned.substring(1);
-    } else if (cleaned.startsWith('+254')) {
-      cleaned = cleaned.substring(1);
-    } else if (!cleaned.startsWith('254')) {
-      cleaned = '254' + cleaned;
-    }
-    
-    return cleaned;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (data: CheckoutFormData) => {
     if (items.length === 0) {
       toast.error('Your cart is empty');
-      return;
-    }
-
-    if (!formData.name || !formData.phone) {
-      toast.error('Please fill in all required fields');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const phoneNumber = formatPhoneNumber(formData.phone);
+      const phoneNumber = formatPhoneForMpesa(data.phone);
       const amount = getTotalPrice();
 
       // Create order in database
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          job_account_id: items[0].job.id, // For simplicity, linking to first item
-          customer_name: formData.name,
+          job_account_id: items[0].job.id,
+          customer_name: data.name,
           customer_phone: phoneNumber,
-          customer_email: formData.email || null,
+          customer_email: data.email || null,
           amount: amount,
           payment_status: 'pending',
+          user_id: user?.id || null, // Link to user if authenticated
         })
         .select()
         .single();
@@ -105,8 +92,8 @@ const Checkout = () => {
         throw new Error(mpesaResponse.error || 'Payment initiation failed');
       }
     } catch (error: any) {
-      console.error('Checkout error:', error);
-      toast.error(error.message || 'Failed to process payment. Please try again.');
+      // Generic error message - don't expose internal details
+      toast.error('Failed to process payment. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -127,7 +114,7 @@ const Checkout = () => {
           <div className="grid md:grid-cols-2 gap-8">
             {/* Form */}
             <div className="order-2 md:order-1">
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <div className="rounded-xl bg-card shadow-soft border border-border p-6 space-y-4">
                   <h2 className="text-lg font-semibold flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
@@ -139,10 +126,12 @@ const Checkout = () => {
                     <Input
                       id="name"
                       placeholder="John Doe"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
+                      autoComplete="name"
+                      {...form.register('name')}
                     />
+                    {form.formState.errors.name && (
+                      <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -153,11 +142,13 @@ const Checkout = () => {
                         id="phone"
                         placeholder="0712345678"
                         className="pl-10"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        required
+                        autoComplete="tel"
+                        {...form.register('phone')}
                       />
                     </div>
+                    {form.formState.errors.phone && (
+                      <p className="text-xs text-destructive">{form.formState.errors.phone.message}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Enter your Safaricom M-Pesa number
                     </p>
@@ -172,10 +163,13 @@ const Checkout = () => {
                         type="email"
                         placeholder="john@example.com"
                         className="pl-10"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        autoComplete="email"
+                        {...form.register('email')}
                       />
                     </div>
+                    {form.formState.errors.email && (
+                      <p className="text-xs text-destructive">{form.formState.errors.email.message}</p>
+                    )}
                   </div>
                 </div>
 

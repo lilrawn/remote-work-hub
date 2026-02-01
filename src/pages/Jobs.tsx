@@ -3,8 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { JobCard } from '@/components/JobCard';
+import { SearchBar } from '@/components/SearchBar';
 import { useJobAccounts, useCategories } from '@/hooks/useJobs';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Filter, SortAsc } from 'lucide-react';
 import {
@@ -19,13 +19,30 @@ const Jobs = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryId = searchParams.get('category') || undefined;
   const [sortBy, setSortBy] = useState<string>('price-asc');
+  const [searchQuery, setSearchQuery] = useState('');
   
   const { data: jobs, isLoading: jobsLoading } = useJobAccounts(categoryId);
   const { data: categories } = useCategories();
 
   const selectedCategory = categories?.find(c => c.id === categoryId);
 
-  const sortedJobs = [...(jobs || [])].sort((a, b) => {
+  // Filter jobs by search query
+  const filteredJobs = (jobs || []).filter((job) => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    return (
+      job.title.toLowerCase().includes(query) ||
+      job.description.toLowerCase().includes(query) ||
+      (job.company && job.company.toLowerCase().includes(query)) ||
+      (job.skills_required && job.skills_required.some(skill => 
+        skill.toLowerCase().includes(query)
+      ))
+    );
+  });
+
+  // Sort filtered jobs
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
     switch (sortBy) {
       case 'price-asc':
         return a.price - b.price;
@@ -47,6 +64,10 @@ const Jobs = () => {
     setSearchParams(searchParams);
   };
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -62,6 +83,15 @@ const Jobs = () => {
                 ? selectedCategory.description 
                 : 'Browse all available remote work accounts'}
             </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6">
+            <SearchBar 
+              onSearch={handleSearch}
+              placeholder="Search by title, company, or skills..."
+              className="max-w-xl"
+            />
           </div>
 
           {/* Filters */}
@@ -95,6 +125,12 @@ const Jobs = () => {
                 <SelectItem value="name">Name</SelectItem>
               </SelectContent>
             </Select>
+
+            {searchQuery && (
+              <p className="text-sm text-muted-foreground self-center">
+                {sortedJobs.length} result{sortedJobs.length !== 1 ? 's' : ''} for "{searchQuery}"
+              </p>
+            )}
           </div>
 
           {/* Jobs Grid */}
@@ -120,7 +156,11 @@ const Jobs = () => {
               ))
             ) : sortedJobs.length === 0 ? (
               <div className="col-span-full text-center py-12">
-                <p className="text-muted-foreground">No job accounts found in this category.</p>
+                <p className="text-muted-foreground">
+                  {searchQuery 
+                    ? 'No job accounts found matching your search.'
+                    : 'No job accounts found in this category.'}
+                </p>
               </div>
             ) : (
               sortedJobs.map((job) => (
