@@ -19,6 +19,8 @@ export interface JobAccount {
   skills_required: string[] | null;
   is_available: boolean;
   image_url: string | null;
+  total_stock: number;
+  sold_count: number;
   created_at: string;
   updated_at: string;
   category?: Category;

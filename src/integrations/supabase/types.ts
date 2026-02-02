@@ -44,6 +44,47 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_tasks: {
+        Row: {
+          created_at: string
+          day_number: number
+          description: string
+          estimated_time: string | null
+          id: string
+          job_account_id: string
+          points: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          day_number: number
+          description: string
+          estimated_time?: string | null
+          id?: string
+          job_account_id: string
+          points?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          day_number?: number
+          description?: string
+          estimated_time?: string | null
+          id?: string
+          job_account_id?: string
+          points?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tasks_job_account_id_fkey"
+            columns: ["job_account_id"]
+            isOneToOne: false
+            referencedRelation: "job_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_accounts: {
         Row: {
           category_id: string | null
@@ -56,7 +97,9 @@ export type Database = {
           monthly_earnings: string | null
           price: number
           skills_required: string[] | null
+          sold_count: number | null
           title: string
+          total_stock: number | null
           updated_at: string
         }
         Insert: {
@@ -70,7 +113,9 @@ export type Database = {
           monthly_earnings?: string | null
           price: number
           skills_required?: string[] | null
+          sold_count?: number | null
           title: string
+          total_stock?: number | null
           updated_at?: string
         }
         Update: {
@@ -84,7 +129,9 @@ export type Database = {
           monthly_earnings?: string | null
           price?: number
           skills_required?: string[] | null
+          sold_count?: number | null
           title?: string
+          total_stock?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -152,39 +199,216 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          county: string | null
           created_at: string
+          date_of_birth: string | null
           email: string | null
           full_name: string | null
           id: string
+          id_number: string | null
+          is_registration_complete: boolean | null
           phone_number: string | null
           role: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          county?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          id_number?: string | null
+          is_registration_complete?: boolean | null
           phone_number?: string | null
           role?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          county?: string | null
           created_at?: string
+          date_of_birth?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          id_number?: string | null
+          is_registration_complete?: boolean | null
           phone_number?: string | null
           role?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          avatar_url: string | null
+          comment: string
+          created_at: string
+          earnings_amount: string | null
+          id: string
+          is_featured: boolean | null
+          location: string | null
+          rating: number
+          reviewer_name: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          comment: string
+          created_at?: string
+          earnings_amount?: string | null
+          id?: string
+          is_featured?: boolean | null
+          location?: string | null
+          rating: number
+          reviewer_name: string
+        }
+        Update: {
+          avatar_url?: string | null
+          comment?: string
+          created_at?: string
+          earnings_amount?: string | null
+          id?: string
+          is_featured?: boolean | null
+          location?: string | null
+          rating?: number
+          reviewer_name?: string
+        }
+        Relationships: []
+      }
+      support_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_from_admin: boolean
+          is_read: boolean
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_from_admin?: boolean
+          is_read?: boolean
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_from_admin?: boolean
+          is_read?: boolean
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_payment_methods: {
+        Row: {
+          account_name: string | null
+          account_number: string | null
+          bank_name: string | null
+          branch_code: string | null
+          created_at: string
+          id: string
+          is_primary: boolean | null
+          method_type: string
+          mpesa_name: string | null
+          mpesa_phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          method_type: string
+          mpesa_name?: string | null
+          mpesa_phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string | null
+          account_number?: string | null
+          bank_name?: string | null
+          branch_code?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean | null
+          method_type?: string
+          mpesa_name?: string | null
+          mpesa_phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_purchases: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          job_account_id: string | null
+          order_id: string | null
+          purchase_date: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          job_account_id?: string | null
+          order_id?: string | null
+          purchase_date?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          job_account_id?: string | null
+          order_id?: string | null
+          purchase_date?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_job_account_id_fkey"
+            columns: ["job_account_id"]
+            isOneToOne: false
+            referencedRelation: "job_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_purchases_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -206,6 +430,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_task_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          purchase_id: string
+          status: string
+          submission_notes: string | null
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          purchase_id: string
+          status?: string
+          submission_notes?: string | null
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          purchase_id?: string
+          status?: string
+          submission_notes?: string | null
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_task_progress_purchase_id_fkey"
+            columns: ["purchase_id"]
+            isOneToOne: false
+            referencedRelation: "user_purchases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_task_progress_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "daily_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

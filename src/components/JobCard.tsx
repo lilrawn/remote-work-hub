@@ -1,17 +1,22 @@
 import { ShoppingCart, Check, Briefcase, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { StockBadge } from '@/components/StockBadge';
 import { useCart } from '@/hooks/useCart';
 import type { JobAccount } from '@/types';
 import { toast } from 'sonner';
 
 interface JobCardProps {
-  job: JobAccount;
+  job: JobAccount & { total_stock?: number; sold_count?: number };
 }
 
 export function JobCard({ job }: JobCardProps) {
   const { items, addItem, removeItem } = useCart();
   const isInCart = items.some(item => item.job.id === job.id);
+  const totalStock = job.total_stock || 100;
+  const soldCount = job.sold_count || 0;
+  const remaining = totalStock - soldCount;
+  const isOutOfStock = remaining <= 0;
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-KE', {
@@ -22,6 +27,10 @@ export function JobCard({ job }: JobCardProps) {
   };
 
   const handleCartAction = () => {
+    if (isOutOfStock) {
+      toast.error('This account is sold out');
+      return;
+    }
     if (isInCart) {
       removeItem(job.id);
       toast.success('Removed from cart');
@@ -44,6 +53,9 @@ export function JobCard({ job }: JobCardProps) {
             {job.monthly_earnings}
           </Badge>
         )}
+        <div className="absolute top-3 left-3">
+          <StockBadge totalStock={totalStock} soldCount={soldCount} />
+        </div>
       </div>
 
       {/* Content */}
@@ -73,6 +85,11 @@ export function JobCard({ job }: JobCardProps) {
           </div>
         )}
 
+        {/* Stock Progress */}
+        <div className="mb-4">
+          <StockBadge totalStock={totalStock} soldCount={soldCount} showDetails />
+        </div>
+
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-border">
           <div>
@@ -83,9 +100,12 @@ export function JobCard({ job }: JobCardProps) {
           <Button 
             onClick={handleCartAction}
             variant={isInCart ? "secondary" : "default"}
+            disabled={isOutOfStock}
             className={isInCart ? "" : "bg-gradient-hero hover:opacity-90 text-primary-foreground"}
           >
-            {isInCart ? (
+            {isOutOfStock ? (
+              'Sold Out'
+            ) : isInCart ? (
               <>
                 <Check className="h-4 w-4 mr-2" />
                 In Cart

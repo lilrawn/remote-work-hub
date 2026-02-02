@@ -2,6 +2,8 @@ import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { CategorySection } from '@/components/CategorySection';
 import { FeaturedJobs } from '@/components/FeaturedJobs';
+import { ReviewsSection } from '@/components/ReviewsSection';
+import { SupportChat } from '@/components/SupportChat';
 import { Footer } from '@/components/Footer';
 
 const Index = () => {
@@ -12,8 +14,10 @@ const Index = () => {
         <Hero />
         <CategorySection />
         <FeaturedJobs />
+        <ReviewsSection />
       </main>
       <Footer />
+      <SupportChat />
     </div>
   );
 };
