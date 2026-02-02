@@ -3,13 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
     <title>Remote-Work-Hub</title>
-    <meta name="description" content="Remote-Work-Hub">
+    <meta name="description" content="Remote-Work-Hub - Find your next remote work opportunity">
     <meta name="author" content="Remote-Work-Hub" />
 
-    <!-- TODO: Update og:title to match your application name -->
+    <!-- Security Headers via Meta Tags -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: https: blob:;
+      connect-src 'self' https://*.supabase.co wss://*.supabase.co https://sandbox.safaricom.co.ke;
+      frame-ancestors 'none';
+      base-uri 'self';
+      form-action 'self';
+    " />
     
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/eHpohg6s8QejUmfiyWBKPqXIIlI3/social-images/social-1769963120882-favicon.png">
@@ -18,19 +33,12 @@
     <meta name="twitter:site" content="@Lovable" />
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/eHpohg6s8QejUmfiyWBKPqXIIlI3/social-images/social-1769963120882-favicon.png">
     
-  
-  
-  
-  
-  
-  
-  
-  <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/eHpohg6s8QejUmfiyWBKPqXIIlI3/uploads/1769963221586-favicon.png">
-  <meta property="og:title" content="Remote-Work-Hub">
-  <meta name="twitter:title" content="Remote-Work-Hub">
-  <meta property="og:description" content="Remote-Work-Hub">
-  <meta name="twitter:description" content="Remote-Work-Hub">
-</head>
+    <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/eHpohg6s8QejUmfiyWBKPqXIIlI3/uploads/1769963221586-favicon.png">
+    <meta property="og:title" content="Remote-Work-Hub">
+    <meta name="twitter:title" content="Remote-Work-Hub">
+    <meta property="og:description" content="Remote-Work-Hub - Find your next remote work opportunity">
+    <meta name="twitter:description" content="Remote-Work-Hub - Find your next remote work opportunity">
+  </head>
 
   <body>
     <div id="root"></div>
