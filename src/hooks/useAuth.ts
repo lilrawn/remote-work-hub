@@ -45,56 +45,77 @@ export function useAuth() {
   }, []);
 
   // Check admin status - deferred with setTimeout to prevent deadlock
-  const checkAdminStatus = useCallback((userId: string) => {
-    setTimeout(async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', userId)
-          .eq('role', 'admin')
-          .single();
+  // Returns a promise that resolves when the check is complete
+  const checkAdminStatus = useCallback((userId: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setTimeout(async () => {
+        try {
+          const { data, error } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', userId)
+            .eq('role', 'admin')
+            .single();
 
-        setIsAdmin(!error && !!data);
-      } catch (err) {
-        setIsAdmin(false);
-      }
-    }, 0);
+          const hasAdmin = !error && !!data;
+          setIsAdmin(hasAdmin);
+          resolve(hasAdmin);
+        } catch (err) {
+          setIsAdmin(false);
+          resolve(false);
+        }
+      }, 0);
+    });
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        if (!isMounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
           fetchProfile(session.user.id);
-          checkAdminStatus(session.user.id);
+          // Wait for admin check to complete before setting isLoading to false
+          await checkAdminStatus(session.user.id);
         } else {
           setProfile(null);
           setIsAdmin(false);
         }
         
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!isMounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
         fetchProfile(session.user.id);
-        checkAdminStatus(session.user.id);
+        // Wait for admin check to complete before setting isLoading to false
+        await checkAdminStatus(session.user.id);
       }
       
-      setIsLoading(false);
+      if (isMounted) {
+        setIsLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile, checkAdminStatus]);
 
   const signUp = async (email: string, password: string, fullName: string) => {
