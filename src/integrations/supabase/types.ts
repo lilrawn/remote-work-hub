@@ -311,6 +311,51 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_support_tickets: {
+        Row: {
+          admin_message_id: number | null
+          admin_reply: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          status: string
+          telegram_chat_id: number
+          telegram_first_name: string | null
+          telegram_user_id: number
+          telegram_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_message_id?: number | null
+          admin_reply?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          status?: string
+          telegram_chat_id: number
+          telegram_first_name?: string | null
+          telegram_user_id: number
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_message_id?: number | null
+          admin_reply?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          status?: string
+          telegram_chat_id?: number
+          telegram_first_name?: string | null
+          telegram_user_id?: number
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_payment_methods: {
         Row: {
           account_name: string | null
