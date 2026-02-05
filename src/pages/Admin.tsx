@@ -56,8 +56,14 @@ import {
   Send,
   Eye,
   User,
+  Users,
+  Boxes,
+  Receipt,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { StockManagement } from '@/components/admin/StockManagement';
+import { TransactionApproval } from '@/components/admin/TransactionApproval';
 
 interface Order {
   id: string;
@@ -529,9 +535,21 @@ const Admin = () => {
             </div>
 
             <Tabs defaultValue="orders" className="space-y-6">
-              <TabsList>
+              <TabsList className="flex-wrap">
                 <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="transactions" className="gap-1">
+                  <Receipt className="h-4 w-4" />
+                  Approvals
+                </TabsTrigger>
                 <TabsTrigger value="jobs">Job Accounts</TabsTrigger>
+                <TabsTrigger value="stock" className="gap-1">
+                  <Boxes className="h-4 w-4" />
+                  Stock
+                </TabsTrigger>
+                <TabsTrigger value="users" className="gap-1">
+                  <Users className="h-4 w-4" />
+                  Users
+                </TabsTrigger>
                 <TabsTrigger value="support" className="relative">
                   Customer Support
                   {unreadMessages > 0 && (
@@ -769,6 +787,31 @@ const Admin = () => {
                       </TableBody>
                     </Table>
                   </div>
+                </div>
+              </TabsContent>
+
+              {/* Transaction Approval Tab */}
+              <TabsContent value="transactions">
+                <div className="rounded-xl bg-card shadow-soft border border-border p-6">
+                  <TransactionApproval />
+                </div>
+              </TabsContent>
+
+              {/* Stock Management Tab */}
+              <TabsContent value="stock">
+                <div className="rounded-xl bg-card shadow-soft border border-border p-6">
+                  <StockManagement />
+                </div>
+              </TabsContent>
+
+              {/* User Management Tab */}
+              <TabsContent value="users">
+                <div className="rounded-xl bg-card shadow-soft border border-border p-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Users className="h-5 w-5" />
+                    User Management
+                  </h3>
+                  <UserManagement />
                 </div>
               </TabsContent>
 
