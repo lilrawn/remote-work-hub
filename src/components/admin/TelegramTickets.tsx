@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
@@ -74,8 +74,29 @@ export const TelegramTickets = () => {
       if (error) throw error;
       return data as TelegramTicket[];
     },
-    refetchInterval: 30000,
   });
+
+  // Realtime subscription for live updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('telegram_tickets_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'telegram_support_tickets',
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['telegram_tickets'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const updateTicketMutation = useMutation({
     mutationFn: async ({ id, status, admin_reply }: { id: string; status: string; admin_reply?: string }) => {

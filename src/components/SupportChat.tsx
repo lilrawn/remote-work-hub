@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { MessageCircle, Send, Loader2, X } from 'lucide-react';
+import { MessageCircle, Send, Loader2, CreditCard, Wrench, User, FileText, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -18,10 +18,18 @@ interface Message {
   created_at: string;
 }
 
+const SUPPORT_CATEGORIES = [
+  { id: 'payments', label: 'Payments', icon: CreditCard, description: 'Payment issues, M-Pesa, refunds' },
+  { id: 'technical', label: 'Technical Support', icon: Wrench, description: 'App issues, bugs, errors' },
+  { id: 'account', label: 'Account Issues', icon: User, description: 'Login, profile, verification' },
+  { id: 'other', label: 'Other', icon: FileText, description: 'General inquiries' },
+];
+
 export function SupportChat() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -71,6 +79,21 @@ export function SupportChat() {
     }
   }, [messages]);
 
+  // Reset category when chat is closed
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedCategory(null);
+    }
+  }, [isOpen]);
+
+  const handleCategorySelect = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    const category = SUPPORT_CATEGORIES.find(c => c.id === categoryId);
+    if (category) {
+      sendMessage.mutate(`[${category.label}] `);
+    }
+  };
+
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -97,6 +120,8 @@ export function SupportChat() {
   }
 
   const unreadCount = messages?.filter(m => m.is_from_admin && !m.is_read).length || 0;
+  const hasMessages = messages && messages.length > 0;
+  const showCategorySelection = !hasMessages && !selectedCategory;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -116,6 +141,16 @@ export function SupportChat() {
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
         <SheetHeader className="p-4 border-b bg-gradient-hero text-primary-foreground">
           <SheetTitle className="text-primary-foreground flex items-center gap-2">
+            {selectedCategory && !hasMessages && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-primary-foreground hover:bg-primary-foreground/20"
+                onClick={() => setSelectedCategory(null)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <MessageCircle className="h-5 w-5" />
             Customer Support
           </SheetTitle>
@@ -126,13 +161,37 @@ export function SupportChat() {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
-          ) : messages?.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No messages yet</p>
-              <p className="text-sm">Send us a message and we'll respond shortly!</p>
+          ) : showCategorySelection ? (
+            <div className="space-y-4">
+              <div className="text-center py-4">
+                <MessageCircle className="h-12 w-12 mx-auto mb-4 text-primary opacity-70" />
+                <h3 className="font-semibold text-lg mb-2">How can we help?</h3>
+                <p className="text-sm text-muted-foreground">
+                  Select a category to get started
+                </p>
+              </div>
+              <div className="grid gap-3">
+                {SUPPORT_CATEGORIES.map((category) => {
+                  const Icon = category.icon;
+                  return (
+                    <button
+                      key={category.id}
+                      onClick={() => handleCategorySelect(category.id)}
+                      className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Icon className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{category.label}</p>
+                        <p className="text-sm text-muted-foreground">{category.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          ) : (
+          ) : hasMessages ? (
             <>
               {messages?.map((msg, index) => {
                 const showDate = index === 0 || 
@@ -173,32 +232,40 @@ export function SupportChat() {
               })}
               <div ref={messagesEndRef} />
             </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Ready to help with {SUPPORT_CATEGORIES.find(c => c.id === selectedCategory)?.label}</p>
+              <p className="text-sm">Type your message below</p>
+            </div>
           )}
         </div>
 
-        <form onSubmit={handleSend} className="p-4 border-t bg-background">
-          <div className="flex gap-2">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1"
-              maxLength={1000}
-            />
-            <Button
-              type="submit"
-              size="icon"
-              disabled={!newMessage.trim() || sendMessage.isPending}
-              className="bg-gradient-hero hover:opacity-90"
-            >
-              {sendMessage.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        </form>
+        {(hasMessages || selectedCategory) && (
+          <form onSubmit={handleSend} className="p-4 border-t bg-background">
+            <div className="flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type your message..."
+                className="flex-1"
+                maxLength={1000}
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!newMessage.trim() || sendMessage.isPending}
+                className="bg-gradient-hero hover:opacity-90"
+              >
+                {sendMessage.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </form>
+        )}
       </SheetContent>
     </Sheet>
   );
