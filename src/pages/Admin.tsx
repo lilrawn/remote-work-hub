@@ -53,6 +53,7 @@ import {
   XCircle,
   ShieldAlert,
   MessageCircle,
+  MessageSquare,
   Send,
   Eye,
   User,
@@ -64,6 +65,7 @@ import { cn } from '@/lib/utils';
 import { UserManagement } from '@/components/admin/UserManagement';
 import { StockManagement } from '@/components/admin/StockManagement';
 import { TransactionApproval } from '@/components/admin/TransactionApproval';
+import { TelegramTickets } from '@/components/admin/TelegramTickets';
 
 interface Order {
   id: string;
@@ -558,6 +560,10 @@ const Admin = () => {
                     </span>
                   )}
                 </TabsTrigger>
+                <TabsTrigger value="telegram" className="gap-1">
+                  <MessageSquare className="h-4 w-4" />
+                  Telegram Tickets
+                </TabsTrigger>
               </TabsList>
 
               {/* Orders Tab */}
@@ -953,6 +959,11 @@ const Admin = () => {
                     </div>
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Telegram Tickets Tab */}
+              <TabsContent value="telegram">
+                <TelegramTickets />
               </TabsContent>
             </Tabs>
           </div>
