@@ -1,6 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+// Notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.3);
+  } catch (e) {
+    console.log('Could not play notification sound:', e);
+  }
+};
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,14 +100,41 @@ export const TelegramTickets = () => {
     },
   });
 
-  // Realtime subscription for live updates
+  // Track previous ticket count for notification
+  const prevTicketCountRef = useRef<number | null>(null);
+  const isInitialLoadRef = useRef(true);
+
+  // Update ref when tickets change
+  useEffect(() => {
+    if (tickets) {
+      const openCount = tickets.filter((t) => t.status === 'open').length;
+      if (isInitialLoadRef.current) {
+        prevTicketCountRef.current = openCount;
+        isInitialLoadRef.current = false;
+      }
+    }
+  }, [tickets]);
+
+  // Realtime subscription for live updates with notification sound
   useEffect(() => {
     const channel = supabase
       .channel('telegram_tickets_changes')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'telegram_support_tickets',
+        },
+        () => {
+          playNotificationSound();
+          queryClient.invalidateQueries({ queryKey: ['telegram_tickets'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'telegram_support_tickets',
         },
