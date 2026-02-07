@@ -5,17 +5,18 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { MessageCircle, Send, Loader2, CreditCard, Wrench, User, FileText, ArrowLeft } from 'lucide-react';
+import { MessageCircle, Send, Loader2, CreditCard, Wrench, User, FileText, ArrowLeft, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-interface Message {
+interface TelegramTicket {
   id: string;
-  user_id: string;
+  category: string;
   message: string;
-  is_from_admin: boolean;
-  is_read: boolean;
+  status: string;
+  admin_reply: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 const SUPPORT_CATEGORIES = [
@@ -26,50 +27,74 @@ const SUPPORT_CATEGORIES = [
 ];
 
 export function SupportChat() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: messages, isLoading } = useQuery({
-    queryKey: ['support_messages', user?.id],
+  // Fetch user's tickets from telegram_support_tickets table
+  // We use the user's email/phone as identifier since telegram tickets are linked via telegram_user_id
+  const { data: tickets, isLoading } = useQuery({
+    queryKey: ['user_telegram_tickets', user?.id],
     queryFn: async () => {
       if (!user) return [];
+      
+      // For web users, we'll store tickets with a special identifier
+      // using a negative chat_id based on user UUID hash
+      const userHash = user.id.split('-').join('').slice(0, 10);
+      const webChatId = parseInt(userHash, 16) * -1; // Negative to distinguish from real Telegram IDs
+      
       const { data, error } = await supabase
-        .from('support_messages')
+        .from('telegram_support_tickets')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('telegram_chat_id', webChatId)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
-      return data as Message[];
+      return data as TelegramTicket[];
     },
     enabled: !!user && isOpen,
     refetchInterval: isOpen ? 5000 : false,
   });
 
-  const sendMessage = useMutation({
-    mutationFn: async (message: string) => {
+  const sendTicket = useMutation({
+    mutationFn: async ({ category, message }: { category: string; message: string }) => {
       if (!user) throw new Error('Not authenticated');
       
-      const { error } = await supabase
-        .from('support_messages')
-        .insert({
-          user_id: user.id,
-          message: message.trim(),
-          is_from_admin: false,
-        });
-      
-      if (error) throw error;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-support-ticket`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          category,
+          message,
+          userName: profile?.full_name || user.email?.split('@')[0],
+          userEmail: user.email,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send ticket');
+      }
+
+      return response.json();
     },
     onSuccess: () => {
       setNewMessage('');
-      queryClient.invalidateQueries({ queryKey: ['support_messages'] });
+      setSelectedCategory(null);
+      queryClient.invalidateQueries({ queryKey: ['user_telegram_tickets'] });
+      toast.success('Support ticket sent! We\'ll respond via Telegram shortly.');
     },
-    onError: () => {
-      toast.error('Failed to send message');
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to send message');
     },
   });
 
@@ -77,7 +102,7 @@ export function SupportChat() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [tickets]);
 
   // Reset category when chat is closed
   useEffect(() => {
@@ -88,16 +113,12 @@ export function SupportChat() {
 
   const handleCategorySelect = (categoryId: string) => {
     setSelectedCategory(categoryId);
-    const category = SUPPORT_CATEGORIES.find(c => c.id === categoryId);
-    if (category) {
-      sendMessage.mutate(`[${category.label}] `);
-    }
   };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    sendMessage.mutate(newMessage);
+    if (!newMessage.trim() || !selectedCategory) return;
+    sendTicket.mutate({ category: selectedCategory, message: newMessage });
   };
 
   const formatTime = (dateString: string) => {
@@ -115,13 +136,23 @@ export function SupportChat() {
     });
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'replied':
+        return <CheckCircle className="h-3 w-3 text-success" />;
+      case 'open':
+        return <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />;
+      default:
+        return null;
+    }
+  };
+
   if (!user) {
     return null;
   }
 
-  const unreadCount = messages?.filter(m => m.is_from_admin && !m.is_read).length || 0;
-  const hasMessages = messages && messages.length > 0;
-  const showCategorySelection = !hasMessages && !selectedCategory;
+  const hasTickets = tickets && tickets.length > 0;
+  const showCategorySelection = !selectedCategory;
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -131,17 +162,12 @@ export function SupportChat() {
           size="icon"
         >
           <MessageCircle className="h-6 w-6" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center">
-              {unreadCount}
-            </span>
-          )}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
         <SheetHeader className="p-4 border-b bg-gradient-hero text-primary-foreground">
           <SheetTitle className="text-primary-foreground flex items-center gap-2">
-            {selectedCategory && !hasMessages && (
+            {selectedCategory && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -190,74 +216,116 @@ export function SupportChat() {
                   );
                 })}
               </div>
+
+              {/* Show existing tickets */}
+              {hasTickets && (
+                <div className="mt-6 pt-4 border-t">
+                  <h4 className="font-medium text-sm text-muted-foreground mb-3">Your Recent Tickets</h4>
+                  <div className="space-y-2">
+                    {tickets?.slice(-3).map((ticket) => (
+                      <div 
+                        key={ticket.id} 
+                        className="p-3 rounded-lg bg-card border border-border"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-primary capitalize">
+                            {ticket.category}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {getStatusIcon(ticket.status)}
+                            <span className="text-xs text-muted-foreground capitalize">
+                              {ticket.status}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm truncate">{ticket.message}</p>
+                        {ticket.admin_reply && (
+                          <div className="mt-2 pt-2 border-t border-border/50">
+                            <p className="text-xs text-muted-foreground mb-1">Reply:</p>
+                            <p className="text-sm text-success">{ticket.admin_reply}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : hasMessages ? (
-            <>
-              {messages?.map((msg, index) => {
+          ) : (
+            <div className="space-y-4">
+              {/* Show the selected category */}
+              <div className="text-center py-4">
+                <div className="h-12 w-12 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+                  {(() => {
+                    const Icon = SUPPORT_CATEGORIES.find(c => c.id === selectedCategory)?.icon || MessageCircle;
+                    return <Icon className="h-6 w-6 text-primary" />;
+                  })()}
+                </div>
+                <h3 className="font-semibold">
+                  {SUPPORT_CATEGORIES.find(c => c.id === selectedCategory)?.label}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Describe your issue below and we'll get back to you via this chat
+                </p>
+              </div>
+
+              {/* Show existing messages in this category */}
+              {tickets?.filter(t => t.category === selectedCategory).map((ticket, index) => {
                 const showDate = index === 0 || 
-                  formatDate(msg.created_at) !== formatDate(messages[index - 1].created_at);
+                  formatDate(ticket.created_at) !== formatDate(tickets.filter(t => t.category === selectedCategory)[index - 1]?.created_at);
                 
                 return (
-                  <div key={msg.id}>
+                  <div key={ticket.id}>
                     {showDate && (
                       <div className="text-center text-xs text-muted-foreground my-4">
-                        {formatDate(msg.created_at)}
+                        {formatDate(ticket.created_at)}
                       </div>
                     )}
-                    <div
-                      className={cn(
-                        "flex",
-                        msg.is_from_admin ? "justify-start" : "justify-end"
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          "max-w-[80%] rounded-2xl px-4 py-2",
-                          msg.is_from_admin
-                            ? "bg-card border border-border rounded-tl-sm"
-                            : "bg-gradient-hero text-primary-foreground rounded-tr-sm"
-                        )}
-                      >
-                        <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
-                        <p className={cn(
-                          "text-xs mt-1",
-                          msg.is_from_admin ? "text-muted-foreground" : "text-primary-foreground/70"
-                        )}>
-                          {formatTime(msg.created_at)}
+                    {/* User message */}
+                    <div className="flex justify-end mb-2">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-gradient-hero text-primary-foreground rounded-tr-sm">
+                        <p className="text-sm whitespace-pre-wrap">{ticket.message}</p>
+                        <p className="text-xs mt-1 text-primary-foreground/70">
+                          {formatTime(ticket.created_at)}
                         </p>
                       </div>
                     </div>
+                    {/* Admin reply */}
+                    {ticket.admin_reply && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-card border border-border rounded-tl-sm">
+                          <p className="text-sm whitespace-pre-wrap">{ticket.admin_reply}</p>
+                          <p className="text-xs mt-1 text-muted-foreground">
+                            {formatTime(ticket.updated_at)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
               <div ref={messagesEndRef} />
-            </>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Ready to help with {SUPPORT_CATEGORIES.find(c => c.id === selectedCategory)?.label}</p>
-              <p className="text-sm">Type your message below</p>
             </div>
           )}
         </div>
 
-        {(hasMessages || selectedCategory) && (
+        {selectedCategory && (
           <form onSubmit={handleSend} className="p-4 border-t bg-background">
             <div className="flex gap-2">
               <Input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
+                placeholder="Describe your issue..."
                 className="flex-1"
                 maxLength={1000}
               />
               <Button
                 type="submit"
                 size="icon"
-                disabled={!newMessage.trim() || sendMessage.isPending}
+                disabled={!newMessage.trim() || sendTicket.isPending}
                 className="bg-gradient-hero hover:opacity-90"
               >
-                {sendMessage.isPending ? (
+                {sendTicket.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <Send className="h-4 w-4" />
