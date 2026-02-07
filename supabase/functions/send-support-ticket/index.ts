@@ -82,7 +82,7 @@ serve(async (req) => {
     const webChatId = -Math.abs(parseInt(userHash, 16) % 2147483647);
     const webUserId = Math.abs(parseInt(userHash.slice(0, 8), 16) % 2147483647);
 
-    // Create ticket in database
+    // Create ticket in database with user_id for RLS
     const { data: ticket, error: insertError } = await supabase
       .from('telegram_support_tickets')
       .insert({
@@ -93,6 +93,7 @@ serve(async (req) => {
         category: category,
         message: message.trim(),
         status: 'open',
+        user_id: user.id, // Store user_id for web user ticket retrieval
       })
       .select()
       .single();

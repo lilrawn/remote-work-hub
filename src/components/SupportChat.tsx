@@ -34,29 +34,23 @@ export function SupportChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  // Fetch user's tickets from telegram_support_tickets table
-  // We use the user's email/phone as identifier since telegram tickets are linked via telegram_user_id
+  // Fetch user's tickets from telegram_support_tickets table using user_id
   const { data: tickets, isLoading } = useQuery({
     queryKey: ['user_telegram_tickets', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
-      // For web users, we'll store tickets with a special identifier
-      // using a negative chat_id based on user UUID hash
-      const userHash = user.id.split('-').join('').slice(0, 10);
-      const webChatId = parseInt(userHash, 16) * -1; // Negative to distinguish from real Telegram IDs
-      
       const { data, error } = await supabase
         .from('telegram_support_tickets')
         .select('*')
-        .eq('telegram_chat_id', webChatId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: true });
       
       if (error) throw error;
       return data as TelegramTicket[];
     },
     enabled: !!user && isOpen,
-    refetchInterval: isOpen ? 5000 : false,
+    refetchInterval: isOpen ? 3000 : false, // Poll every 3 seconds for admin replies
   });
 
   const sendTicket = useMutation({
