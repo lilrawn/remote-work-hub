@@ -325,6 +325,7 @@ export type Database = {
           telegram_user_id: number
           telegram_username: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           admin_message_id?: number | null
@@ -339,6 +340,7 @@ export type Database = {
           telegram_user_id: number
           telegram_username?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           admin_message_id?: number | null
@@ -353,6 +355,7 @@ export type Database = {
           telegram_user_id?: number
           telegram_username?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
