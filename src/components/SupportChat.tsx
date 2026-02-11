@@ -31,8 +31,32 @@ export function SupportChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [lastSeenAt, setLastSeenAt] = useState<string>(() => {
+    return localStorage.getItem('support_last_seen') || '2000-01-01T00:00:00Z';
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+
+  // Fetch tickets even when closed (for unread badge)
+  const { data: allTickets } = useQuery({
+    queryKey: ['user_telegram_tickets_badge', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('telegram_support_tickets')
+        .select('id, admin_reply, updated_at, status')
+        .eq('user_id', user.id)
+        .not('admin_reply', 'is', null);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+  });
+
+  const unreadCount = allTickets?.filter(
+    t => t.admin_reply && t.updated_at > lastSeenAt
+  ).length || 0;
 
   // Fetch user's tickets from telegram_support_tickets table using user_id
   const { data: tickets, isLoading } = useQuery({
@@ -83,9 +107,10 @@ export function SupportChat() {
     },
     onSuccess: () => {
       setNewMessage('');
-      setSelectedCategory(null);
+      // Stay in the category to allow follow-up messages
       queryClient.invalidateQueries({ queryKey: ['user_telegram_tickets'] });
-      toast.success('Support ticket sent! We\'ll respond via Telegram shortly.');
+      queryClient.invalidateQueries({ queryKey: ['user_telegram_tickets_badge'] });
+      toast.success('Message sent! We\'ll reply shortly.');
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Failed to send message');
@@ -98,9 +123,13 @@ export function SupportChat() {
     }
   }, [tickets]);
 
-  // Reset category when chat is closed
+  // Mark as seen when opening, reset category when closing
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      const now = new Date().toISOString();
+      setLastSeenAt(now);
+      localStorage.setItem('support_last_seen', now);
+    } else {
       setSelectedCategory(null);
     }
   }, [isOpen]);
@@ -156,6 +185,11 @@ export function SupportChat() {
           size="icon"
         >
           <MessageCircle className="h-6 w-6" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center font-bold animate-pulse">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </Button>
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md flex flex-col p-0">
@@ -259,7 +293,9 @@ export function SupportChat() {
                   {SUPPORT_CATEGORIES.find(c => c.id === selectedCategory)?.label}
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Describe your issue below and we'll get back to you via this chat
+                  {tickets?.some(t => t.category === selectedCategory)
+                    ? 'Send a follow-up message below'
+                    : 'Describe your issue below and we\'ll get back to you via this chat'}
                 </p>
               </div>
 
