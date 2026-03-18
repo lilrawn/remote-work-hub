@@ -37,6 +37,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/complete-registration" element={<CompleteRegistration />} />
           <Route path="/my-tasks/:purchaseId" element={<MyTasks />} />
