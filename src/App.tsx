@@ -12,7 +12,9 @@ import PaymentPending from "./pages/PaymentPending";
 import Auth from "./pages/Auth";
 import Orders from "./pages/Orders";
 import Admin from "./pages/Admin";
+import AdminPayments from "./pages/AdminPayments";
 import Dashboard from "./pages/Dashboard";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import CompleteRegistration from "./pages/CompleteRegistration";
 import MyTasks from "./pages/MyTasks";
 import NotFound from "./pages/NotFound";
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/payments" element={<AdminPayments />} />
+          <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/complete-registration" element={<CompleteRegistration />} />
           <Route path="/my-tasks/:purchaseId" element={<MyTasks />} />
