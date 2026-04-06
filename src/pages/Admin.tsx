@@ -543,6 +543,12 @@ const Admin = () => {
                   <Receipt className="h-4 w-4" />
                   Approvals
                 </TabsTrigger>
+                <TabsTrigger value="payments" className="gap-1" asChild>
+                  <Link to="/admin/payments">
+                    <CreditCard className="h-4 w-4" />
+                    Payments
+                  </Link>
+                </TabsTrigger>
                 <TabsTrigger value="jobs">Job Accounts</TabsTrigger>
                 <TabsTrigger value="stock" className="gap-1">
                   <Boxes className="h-4 w-4" />
