@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         amount, // amount in kobo/pesewas
         currency: "KES",
         reference,
-        callback_url: `${req.headers.get("origin") || "https://remote-work-hubb.lovable.app"}/payment/success`,
+        callback_url: `${req.headers.get("origin") || "https://remote-work-hub-iota.vercel.app"}/payment/success`,
         metadata: {
           user_id: userId,
           order_id: orderId,
