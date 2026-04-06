@@ -96,7 +96,30 @@ const Auth = () => {
     }
   };
 
-  if (authLoading) {
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+
+      if (result.error) {
+        toast.error('Failed to sign in with Google');
+        return;
+      }
+
+      if (result.redirected) {
+        return;
+      }
+
+      toast.success('Welcome!');
+      navigate('/');
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
