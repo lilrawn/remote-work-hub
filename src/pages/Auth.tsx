@@ -12,11 +12,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { signUpSchema, signInSchema, SignUpFormData, SignInFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 import { Loader2, Mail, Lock, User, Eye, EyeOff, ShieldCheck, ArrowLeft } from 'lucide-react';
+import { lovable } from '@/integrations/lovable/index';
 
 const Auth = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading, signUp, signIn } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
 
