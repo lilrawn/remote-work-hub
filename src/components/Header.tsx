@@ -77,7 +77,7 @@ export function Header() {
       {profileIncomplete && (
         <Link
           to="/profile"
-          className="block bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 transition-colors"
+          className="block bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
         >
           <div className="container flex items-center justify-center gap-2 py-1.5 text-xs sm:text-sm">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
