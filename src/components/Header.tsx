@@ -69,8 +69,25 @@ export function Header() {
     { href: '/orders', label: 'Order History' },
   ];
 
+  const profileIncomplete =
+    !!user && (!profile?.full_name?.trim() || !profile?.phone_number?.trim());
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {profileIncomplete && (
+        <Link
+          to="/profile"
+          className="block bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25 transition-colors"
+        >
+          <div className="container flex items-center justify-center gap-2 py-1.5 text-xs sm:text-sm">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>
+              Your profile is incomplete.{' '}
+              <span className="font-semibold underline">Complete it now</span>
+            </span>
+          </div>
+        </Link>
+      )}
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
