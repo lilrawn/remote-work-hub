@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package, Settings } from 'lucide-react';
+import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package, Settings, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
