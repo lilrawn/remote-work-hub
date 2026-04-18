@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package } from 'lucide-react';
+import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -154,6 +154,12 @@ export function Header() {
                   <Link to="/orders" className="flex items-center cursor-pointer">
                     <Package className="mr-2 h-4 w-4" />
                     My Orders
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Profile Settings
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
