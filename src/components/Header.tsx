@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package, Settings } from 'lucide-react';
+import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package, Settings, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -69,8 +69,25 @@ export function Header() {
     { href: '/orders', label: 'Order History' },
   ];
 
+  const profileIncomplete =
+    !!user && (!profile?.full_name?.trim() || !profile?.phone_number?.trim());
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {profileIncomplete && (
+        <Link
+          to="/profile"
+          className="block bg-accent text-accent-foreground hover:bg-accent/80 transition-colors"
+        >
+          <div className="container flex items-center justify-center gap-2 py-1.5 text-xs sm:text-sm">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            <span>
+              Your profile is incomplete.{' '}
+              <span className="font-semibold underline">Complete it now</span>
+            </span>
+          </div>
+        </Link>
+      )}
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">

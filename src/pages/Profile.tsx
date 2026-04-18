@@ -7,13 +7,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Camera, Loader2, User as UserIcon } from 'lucide-react';
+import { Camera, Loader2, User as UserIcon, KeyRound, Trash2 } from 'lucide-react';
 
 export default function Profile() {
-  const { user, profile, isLoading, updateProfile } = useAuth();
+  const { user, profile, isLoading, updateProfile, signOut } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -22,6 +32,22 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Password change
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Delete account
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
+  // Detect if the user signed in via OAuth (no password to change)
+  const isOAuthUser =
+    !!user &&
+    Array.isArray(user.app_metadata?.providers) &&
+    !(user.app_metadata!.providers as string[]).includes('email');
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -116,6 +142,49 @@ export default function Profile() {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      toast.success('Password updated successfully');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to update password');
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      toast.error('Please type DELETE to confirm');
+      return;
+    }
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+
+      toast.success('Account deleted');
+      await signOut();
+      navigate('/');
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -130,14 +199,15 @@ export default function Profile() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container max-w-2xl py-10">
-        <div className="mb-6">
+      <main className="flex-1 container max-w-2xl py-10 space-y-6">
+        <div>
           <h1 className="text-3xl font-bold">Profile Settings</h1>
           <p className="text-muted-foreground mt-1">
-            Manage your personal information and profile picture.
+            Manage your personal information, security and account.
           </p>
         </div>
 
+        {/* Personal info */}
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
@@ -146,7 +216,6 @@ export default function Profile() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Avatar */}
             <div className="flex items-center gap-5">
               <div className="relative">
                 <Avatar className="h-24 w-24">
@@ -185,13 +254,11 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Email (read-only) */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" value={user.email || ''} disabled />
             </div>
 
-            {/* Full name */}
             <div className="space-y-2">
               <Label htmlFor="fullName">Full name</Label>
               <Input
@@ -202,7 +269,6 @@ export default function Profile() {
               />
             </div>
 
-            {/* Phone number */}
             <div className="space-y-2">
               <Label htmlFor="phone">Phone number</Label>
               <Input
@@ -225,8 +291,114 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Change password */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <KeyRound className="h-5 w-5" />
+              Change Password
+            </CardTitle>
+            <CardDescription>
+              {isOAuthUser
+                ? 'Your account uses social sign-in, so a password is not required.'
+                : 'Choose a strong password with at least 8 characters.'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                disabled={isOAuthUser}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm new password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                disabled={isOAuthUser}
+              />
+            </div>
+            <div className="flex justify-end pt-2">
+              <Button
+                onClick={handleChangePassword}
+                disabled={changingPassword || isOAuthUser || !newPassword}
+              >
+                {changingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Update password
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger zone */}
+        <Card className="border-destructive/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete Account
+            </CardTitle>
+            <CardDescription>
+              Permanently remove your account, profile, avatar and related data.
+              This cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete my account
+            </Button>
+          </CardContent>
+        </Card>
       </main>
       <Footer />
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your profile, avatar, payment methods
+              and account. Your purchase history may be retained for accounting
+              purposes. Type <span className="font-mono font-semibold">DELETE</span> to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteAccount();
+              }}
+              disabled={deleting || deleteConfirmText !== 'DELETE'}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
