@@ -145,14 +145,32 @@ export function useAuth() {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (!error) {
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      setIsAdmin(false);
+    // Clear local state immediately for instant UI feedback
+    setUser(null);
+    setSession(null);
+    setProfile(null);
+    setIsAdmin(false);
+
+    try {
+      // Use 'local' scope so it doesn't fail if the server session is already gone
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      if (error) {
+        // Even on error, force-clear any persisted Supabase auth keys
+        try {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+            .forEach((k) => localStorage.removeItem(k));
+        } catch {}
+      }
+      return { error: null };
+    } catch (err) {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+      return { error: null };
     }
-    return { error };
   };
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
