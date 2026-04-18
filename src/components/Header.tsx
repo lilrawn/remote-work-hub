@@ -4,6 +4,17 @@ import { Menu, ShoppingCart, Briefcase, User, LogOut, Shield, Package } from 'lu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useCart } from '@/hooks/useCart';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -17,10 +28,32 @@ import { toast } from 'sonner';
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
   const itemCount = useCart((state) => state.getItemCount());
   const { user, profile, isAdmin, signOut } = useAuth();
 
-  const handleSignOut = async () => {
+  // Pull avatar/name from profile or Google OAuth metadata
+  const avatarUrl =
+    profile?.avatar_url ||
+    (user?.user_metadata?.avatar_url as string | undefined) ||
+    (user?.user_metadata?.picture as string | undefined);
+  const displayName =
+    profile?.full_name ||
+    (user?.user_metadata?.full_name as string | undefined) ||
+    (user?.user_metadata?.name as string | undefined) ||
+    user?.email?.split('@')[0] ||
+    'User';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  const confirmSignOut = async () => {
+    setSignOutDialogOpen(false);
+    setIsOpen(false);
     const { error } = await signOut();
     if (error) {
       toast.error('Failed to sign out');
@@ -78,7 +111,7 @@ export function Header() {
             <Button variant="outline" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
               {itemCount > 0 && (
-                <Badge 
+                <Badge
                   className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-gradient-hero border-0"
                 >
                   {itemCount}
@@ -91,14 +124,30 @@ export function Header() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <User className="h-5 w-5" />
+                <Button variant="ghost" className="relative gap-2 px-2 h-10">
+                  <Avatar className="h-8 w-8">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">
+                      {initials || <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline text-sm font-medium max-w-[120px] truncate">
+                    {displayName}
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{profile?.full_name || 'User'}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                <div className="px-2 py-1.5 flex items-center gap-2">
+                  <Avatar className="h-9 w-9">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    <AvatarFallback className="bg-gradient-hero text-primary-foreground text-xs font-semibold">
+                      {initials || <User className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{displayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
@@ -116,7 +165,13 @@ export function Header() {
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSignOutDialogOpen(true);
+                  }}
+                  className="text-destructive cursor-pointer focus:text-destructive"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign Out
                 </DropdownMenuItem>
@@ -139,7 +194,21 @@ export function Header() {
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[280px]">
-              <nav className="flex flex-col gap-4 mt-8">
+              {user && (
+                <div className="flex items-center gap-3 pb-4 mb-4 border-b">
+                  <Avatar className="h-10 w-10">
+                    {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} />}
+                    <AvatarFallback className="bg-gradient-hero text-primary-foreground text-sm font-semibold">
+                      {initials || <User className="h-5 w-5" />}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{displayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                </div>
+              )}
+              <nav className="flex flex-col gap-4 mt-2">
                 {navLinks.map((link) => (
                   <Link
                     key={link.href}
@@ -172,10 +241,7 @@ export function Header() {
                 )}
                 {user && (
                   <button
-                    onClick={() => {
-                      handleSignOut();
-                      setIsOpen(false);
-                    }}
+                    onClick={() => setSignOutDialogOpen(true)}
                     className="text-lg font-medium text-destructive hover:text-destructive/80 transition-colors flex items-center gap-2 text-left"
                   >
                     <LogOut className="h-5 w-5" />
@@ -187,6 +253,28 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out of your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll need to sign in again to access your orders, cart, and account settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmSignOut}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Sign Out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }
